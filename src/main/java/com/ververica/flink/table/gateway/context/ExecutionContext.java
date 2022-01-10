@@ -90,12 +90,15 @@ import javax.annotation.Nullable;
 
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.sql.Driver;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -504,6 +507,8 @@ public class ExecutionContext<ClusterID> {
 		// Step.1 Create catalogs and register them.
 		//--------------------------------------------------------------------------------------------------------------
 		wrapClassLoader(() -> {
+			List<Driver> driverList = new ArrayList<>();
+			ServiceLoader.load(Driver.class).iterator().forEachRemaining(e -> driverList.add(e));
 			environment.getCatalogs().forEach((name, entry) -> {
 				Catalog catalog = createCatalog(name, entry.asMap(), classLoader);
 				tableEnv.registerCatalog(name, catalog);

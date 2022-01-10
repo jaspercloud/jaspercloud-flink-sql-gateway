@@ -17,17 +17,18 @@
   -->
 
 <configuration>
-    <appender name="file" class="ch.qos.logback.core.FileAppender">
-        <file>${log.file}</file>
-        <append>false</append>
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{60} %X{sourceThread} - %msg%n</pattern>
+
+    <property name="PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{5} - %m%n"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${PATTERN}</pattern>
         </encoder>
     </appender>
 
     <!-- # This affects logging for both flink-sql-gateway and Flink -->
     <root level="INFO">
-        <appender-ref ref="file"/>
+        <appender-ref ref="STDOUT"/>
     </root>
 
     <!-- Uncomment this if you want to only change flink-sql-gateway's logging -->
