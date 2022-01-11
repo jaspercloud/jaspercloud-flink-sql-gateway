@@ -78,6 +78,7 @@ public class StatementExecuteHandler
 		Long executionTimeoutMillis = request.getRequestBody().getExecutionTimeout();
 
 		try {
+			log.error("statement: {}", statement);
 			Tuple2<ResultSet, SqlCommand> tuple2 = sessionManager.getSession(sessionId).runStatement(statement);
 			ResultSet resultSet = tuple2.f0;
 			String statementType = tuple2.f1.name();

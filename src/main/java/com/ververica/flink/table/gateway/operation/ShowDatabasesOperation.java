@@ -27,21 +27,29 @@ import org.apache.flink.table.api.TableEnvironment;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Operation for SHOW DATABASES command.
  */
 public class ShowDatabasesOperation implements NonJobOperation {
-	private final ExecutionContext<?> context;
 
-	public ShowDatabasesOperation(SessionContext context) {
-		this.context = context.getExecutionContext();
-	}
+    private final ExecutionContext<?> context;
 
-	@Override
-	public ResultSet execute() {
-		final TableEnvironment tableEnv = context.getTableEnvironment();
-		final List<String> databases = context.wrapClassLoader(() -> Arrays.asList(tableEnv.listDatabases()));
-		return OperationUtil.stringListToResultSet(databases, ConstantNames.SHOW_DATABASES_RESULT);
-	}
+    public ShowDatabasesOperation(SessionContext context) {
+        this.context = context.getExecutionContext();
+    }
+
+    @Override
+    public ResultSet execute() {
+        final TableEnvironment tableEnv = context.getTableEnvironment();
+        final List<String> databases = context.wrapClassLoader(() -> {
+            String catalog = tableEnv.getCurrentCatalog();
+            List<String> dbList = Arrays.asList(tableEnv.listDatabases()).stream()
+                    .map(e -> String.format("%s.%s", catalog, e))
+                    .collect(Collectors.toList());
+            return dbList;
+        });
+        return OperationUtil.stringListToResultSet(databases, ConstantNames.SHOW_DATABASES_RESULT);
+    }
 }

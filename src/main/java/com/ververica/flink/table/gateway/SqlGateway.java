@@ -76,7 +76,7 @@ public class SqlGateway {
 			RestServerEndpointConfiguration.fromConfiguration(configuration),
 			sessionManager);
 		endpoint.start();
-		System.out.println("Rest endpoint started.");
+		System.out.println(String.format("Rest endpoint started. port %s", port));
 
 		new CountDownLatch(1).await();
 	}

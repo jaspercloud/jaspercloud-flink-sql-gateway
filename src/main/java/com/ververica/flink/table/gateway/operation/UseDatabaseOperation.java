@@ -22,7 +22,6 @@ import com.ververica.flink.table.gateway.context.ExecutionContext;
 import com.ververica.flink.table.gateway.context.SessionContext;
 import com.ververica.flink.table.gateway.rest.result.ResultSet;
 import com.ververica.flink.table.gateway.utils.SqlExecutionException;
-
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.catalog.exceptions.CatalogException;
 
@@ -41,11 +40,21 @@ public class UseDatabaseOperation implements NonJobOperation {
 	@Override
 	public ResultSet execute() {
 		final TableEnvironment tableEnv = context.getTableEnvironment();
-
+		String[] split = databaseName.split("\\.");
 		context.wrapClassLoader(() -> {
 			// Rely on TableEnvironment/CatalogManager to validate input
 			try {
-				tableEnv.useDatabase(databaseName);
+				switch (split.length) {
+					case 1:
+						tableEnv.useDatabase(databaseName);
+						break;
+					case 2:
+						tableEnv.useCatalog(split[0]);
+						tableEnv.useDatabase(split[1]);
+						break;
+					default:
+						throw new UnsupportedOperationException();
+				}
 				return null;
 			} catch (CatalogException e) {
 				throw new SqlExecutionException("Failed to switch to database " + databaseName, e);

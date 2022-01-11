@@ -25,6 +25,8 @@ import com.ververica.flink.table.gateway.rest.result.ResultSet;
 
 import org.apache.flink.table.api.TableEnvironment;
 
+import java.util.Optional;
+
 /**
  * Operation for SHOW CURRENT DATABASE command.
  */
@@ -38,7 +40,15 @@ public class ShowCurrentDatabaseOperation implements NonJobOperation {
 	@Override
 	public ResultSet execute() {
 		final TableEnvironment tableEnv = context.getTableEnvironment();
-		return OperationUtil.singleStringToResultSet(
-			context.wrapClassLoader(tableEnv::getCurrentDatabase), ConstantNames.SHOW_CURRENT_DATABASE_RESULT);
+		String databaseName = context.wrapClassLoader(() -> {
+			String catalog = tableEnv.getCurrentCatalog();
+			String database = tableEnv.getCurrentDatabase();
+			String result = Optional.of(catalog)
+					.filter(item -> item.length() > 0)
+					.map(item -> String.format("%s.%s", item, database))
+					.orElse(database);
+			return result;
+		});
+		return OperationUtil.singleStringToResultSet(databaseName, ConstantNames.SHOW_CURRENT_DATABASE_RESULT);
 	}
 }
