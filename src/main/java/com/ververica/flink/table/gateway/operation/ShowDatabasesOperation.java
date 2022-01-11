@@ -46,7 +46,8 @@ public class ShowDatabasesOperation implements NonJobOperation {
         final List<String> databases = context.wrapClassLoader(() -> {
             String catalog = tableEnv.getCurrentCatalog();
             List<String> dbList = Arrays.asList(tableEnv.listDatabases()).stream()
-                    .map(e -> String.format("%s.%s", catalog, e))
+//                    .map(e -> String.format("%s.%s", catalog, e))
+                    .map(e -> String.format("%s", e))
                     .collect(Collectors.toList());
             return dbList;
         });

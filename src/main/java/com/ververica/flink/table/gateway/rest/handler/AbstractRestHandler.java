@@ -73,7 +73,7 @@ public abstract class AbstractRestHandler<R extends RequestBody, P extends Respo
 		HandlerRequest<R, M> handlerRequest) {
 		CompletableFuture<P> response;
 
-		log.error("method={}, url={}", httpRequest.getMethod().toString(), httpRequest.getUri());
+//		log.info("method={}, url={}", httpRequest.getMethod().toString(), httpRequest.getUri());
 		try {
 			response = handleRequest(handlerRequest);
 		} catch (RestHandlerException e) {

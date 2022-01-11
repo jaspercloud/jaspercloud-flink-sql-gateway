@@ -45,7 +45,8 @@ public class ShowCurrentDatabaseOperation implements NonJobOperation {
 			String database = tableEnv.getCurrentDatabase();
 			String result = Optional.of(catalog)
 					.filter(item -> item.length() > 0)
-					.map(item -> String.format("%s.%s", item, database))
+//					.map(item -> String.format("%s.%s", item, database))
+					.map(item -> String.format("%s", database))
 					.orElse(database);
 			return result;
 		});

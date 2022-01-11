@@ -46,71 +46,74 @@ import java.util.Map;
  * Operation for DESCRIBE TABLE command.
  */
 public class DescribeTableOperation implements NonJobOperation {
-	private final ExecutionContext<?> context;
-	private final String tableName;
 
-	public DescribeTableOperation(SessionContext context, String tableName) {
-		this.context = context.getExecutionContext();
-		this.tableName = tableName;
-	}
+    private ExecutionContext<?> context;
+    private String tableName;
 
-	@Override
-	@SuppressWarnings("unchecked")
-	public ResultSet execute() {
-		// the implementation should be in sync with Flink, see FLINK-17112
-		final TableEnvironment tableEnv = context.getTableEnvironment();
-		TableSchema schema;
-		try {
-			schema = context.wrapClassLoader(() -> tableEnv.from(tableName).getSchema());
-		} catch (Throwable t) {
-			// catch everything such that the query does not crash the executor
-			throw new SqlExecutionException("No table with this name could be found.", t);
-		}
+    public DescribeTableOperation(SessionContext context, String tableName) {
+        this.context = context.getExecutionContext();
+        this.tableName = tableName;
+    }
 
-		Map<String, String> fieldToWatermark = new HashMap<>();
-		for (WatermarkSpec spec : schema.getWatermarkSpecs()) {
-			fieldToWatermark.put(spec.getRowtimeAttribute(), spec.getWatermarkExpr());
-		}
+    @Override
+    @SuppressWarnings("unchecked")
+    public ResultSet execute() {
+        // the implementation should be in sync with Flink, see FLINK-17112
+        final TableEnvironment tableEnv = context.getTableEnvironment();
+        String[] split = tableName.replaceAll("`", "").split("\\.");
+        String queryTableName = split.length >= 2 ? split[1] : split[0];
+        TableSchema schema;
+        try {
+            schema = context.wrapClassLoader(() -> tableEnv.from(queryTableName).getSchema());
+        } catch (Throwable t) {
+            // catch everything such that the query does not crash the executor
+            throw new SqlExecutionException("No table with this name could be found.", t);
+        }
 
-		Map<String, String> fieldToPrimaryKey = new HashMap<>();
-		if (schema.getPrimaryKey().isPresent()) {
-			List<String> columns = schema.getPrimaryKey().get().getColumns();
-			String primaryKey = "PRI(" + String.join(", ", columns) + ")";
-			for (String column : columns) {
-				fieldToPrimaryKey.put(column, primaryKey);
-			}
-		}
+        Map<String, String> fieldToWatermark = new HashMap<>();
+        for (WatermarkSpec spec : schema.getWatermarkSpecs()) {
+            fieldToWatermark.put(spec.getRowtimeAttribute(), spec.getWatermarkExpr());
+        }
 
-		List<TableColumn> columns = schema.getTableColumns();
-		List<Row> data = new ArrayList<>();
-		for (TableColumn column : columns) {
-			LogicalType logicalType = column.getType().getLogicalType();
+        Map<String, String> fieldToPrimaryKey = new HashMap<>();
+        if (schema.getPrimaryKey().isPresent()) {
+            List<String> columns = schema.getPrimaryKey().get().getColumns();
+            String primaryKey = "PRI(" + String.join(", ", columns) + ")";
+            for (String column : columns) {
+                fieldToPrimaryKey.put(column, primaryKey);
+            }
+        }
 
-			String name = column.getName();
-			String type = StringUtils.removeEnd(logicalType.toString(), " NOT NULL");
-			boolean isNullable = logicalType.isNullable();
-			String key = fieldToPrimaryKey.getOrDefault(column.getName(), null);
-			final String computedColumn;
-			if (column instanceof TableColumn.ComputedColumn) {
-				computedColumn = ((TableColumn.ComputedColumn) column).getExpression();
-			} else {
-				computedColumn = null;
-			}
-			String watermark = fieldToWatermark.getOrDefault(column.getName(), null);
+        List<TableColumn> columns = schema.getTableColumns();
+        List<Row> data = new ArrayList<>();
+        for (TableColumn column : columns) {
+            LogicalType logicalType = column.getType().getLogicalType();
 
-			data.add(Row.of(name, type, isNullable, key, computedColumn, watermark));
-		}
+            String name = column.getName();
+            String type = StringUtils.removeEnd(logicalType.toString(), " NOT NULL");
+            boolean isNullable = logicalType.isNullable();
+            String key = fieldToPrimaryKey.getOrDefault(column.getName(), null);
+            final String computedColumn;
+            if (column instanceof TableColumn.ComputedColumn) {
+                computedColumn = ((TableColumn.ComputedColumn) column).getExpression();
+            } else {
+                computedColumn = null;
+            }
+            String watermark = fieldToWatermark.getOrDefault(column.getName(), null);
 
-		return ResultSet.builder()
-			.resultKind(ResultKind.SUCCESS_WITH_CONTENT)
-			.columns(
-				ColumnInfo.create(ConstantNames.DESCRIBE_NAME, DataTypes.STRING().getLogicalType()),
-				ColumnInfo.create(ConstantNames.DESCRIBE_TYPE, DataTypes.STRING().getLogicalType()),
-				ColumnInfo.create(ConstantNames.DESCRIBE_NULL, new BooleanType()),
-				ColumnInfo.create(ConstantNames.DESCRIBE_KEY, DataTypes.STRING().getLogicalType()),
-				ColumnInfo.create(ConstantNames.DESCRIBE_COMPUTED_COLUMN, DataTypes.STRING().getLogicalType()),
-				ColumnInfo.create(ConstantNames.DESCRIBE_WATERMARK, DataTypes.STRING().getLogicalType()))
-			.data(data)
-			.build();
-	}
+            data.add(Row.of(name, type, isNullable, key, computedColumn, watermark));
+        }
+
+        return ResultSet.builder()
+                .resultKind(ResultKind.SUCCESS_WITH_CONTENT)
+                .columns(
+                        ColumnInfo.create(ConstantNames.DESCRIBE_NAME, DataTypes.STRING().getLogicalType()),
+                        ColumnInfo.create(ConstantNames.DESCRIBE_TYPE, DataTypes.STRING().getLogicalType()),
+                        ColumnInfo.create(ConstantNames.DESCRIBE_NULL, new BooleanType()),
+                        ColumnInfo.create(ConstantNames.DESCRIBE_KEY, DataTypes.STRING().getLogicalType()),
+                        ColumnInfo.create(ConstantNames.DESCRIBE_COMPUTED_COLUMN, DataTypes.STRING().getLogicalType()),
+                        ColumnInfo.create(ConstantNames.DESCRIBE_WATERMARK, DataTypes.STRING().getLogicalType()))
+                .data(data)
+                .build();
+    }
 }
